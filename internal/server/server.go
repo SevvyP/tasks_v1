@@ -7,11 +7,14 @@ import (
 	"github.com/SevvyP/tasks_v1/internal/database"
 )
 
+// Resolver is the main server struct that holds the HTTP server and the database.
 type Resolver struct {
 	Server   http.Server
 	Database database.TaskDatabase
 }
 
+// NewResolver creates a new Resolver with a new HTTP server and database.
+// It also sets up the HTTP routes for the server.
 func NewResolver() *Resolver {
 	mux := http.NewServeMux()
 	database, err := database.NewDatabase()
@@ -43,6 +46,7 @@ func NewResolver() *Resolver {
 	return resolver
 }
 
+// Resolve starts the HTTP server and listens for incoming requests.
 func (r *Resolver) Resolve() error {
 	return r.Server.ListenAndServe()
 }

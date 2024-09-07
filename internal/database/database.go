@@ -21,6 +21,7 @@ type Item struct {
 	Price int    `json:"price" dynamodbav:"price"`
 }
 
+// TaskDatabase is an interface for interacting with a task database.
 type TaskDatabase interface {
 	GetTasks() (*[]Task, error)
 	GetTaskByID(id string) (*Task, error)
@@ -29,25 +30,30 @@ type TaskDatabase interface {
 	DeleteTask(task Task) error
 }
 
-type Database struct {
+// DynamoDatabase is a DynamoDB implementation of the TaskDatabase interface.
+type DynamoDatabase struct {
 	tableName string
 	client    *dynamodb.Client
 }
 
-func NewDatabase() (*Database, error) {
+// NewDatabase creates a new DynamoDatabase instance.
+// It returns an error if the AWS configuration cannot be loaded.
+func NewDatabase() (*DynamoDatabase, error) {
 	tableName := "tasks_v1"
 	cfg, err := config.LoadDefaultConfig(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed to load aws config: %v", err)
 	}
 
-	return &Database{
+	return &DynamoDatabase{
 		tableName: tableName,
 		client:    dynamodb.NewFromConfig(cfg),
 	}, nil
 }
 
-func (d *Database) GetTasks() (*[]Task, error) {
+// GetTasks retrieves a list of tasks from the database.
+// It returns an error if the tasks cannot be retrieved.
+func (d *DynamoDatabase) GetTasks() (*[]Task, error) {
 	// Create an input for the Scan operation
 	input := &dynamodb.ScanInput{
 		TableName: aws.String(d.tableName),
@@ -69,7 +75,10 @@ func (d *Database) GetTasks() (*[]Task, error) {
 	return &output, nil
 }
 
-func (d *Database) GetTaskByID(id string) (*Task, error) {
+// GetTaskByID retrieves a task by its ID from the database.
+// It returns an error if the task cannot be retrieved.
+// If the task is not found, it returns nil.
+func (d *DynamoDatabase) GetTaskByID(id string) (*Task, error) {
 	// Marshal the id into a DynamoDB attribute value
 	idAttr, err := attributevalue.Marshal(id)
 	if err != nil {
@@ -102,7 +111,9 @@ func (d *Database) GetTaskByID(id string) (*Task, error) {
 	return &task, nil
 }
 
-func (d *Database) CreateTask(task Task) error {
+// CreateTask creates a new task in the database.
+// It returns an error if the task cannot be created.
+func (d *DynamoDatabase) CreateTask(task Task) error {
 	// Marshal the task into a DynamoDB attribute value map
 	item, err := attributevalue.MarshalMap(task)
 	if err != nil {
@@ -124,7 +135,9 @@ func (d *Database) CreateTask(task Task) error {
 	return nil
 }
 
-func (d *Database) UpdateTask(updatedTask Task) error {
+// UpdateTask updates an existing task in the database.
+// It returns an error if the task cannot be updated.
+func (d *DynamoDatabase) UpdateTask(updatedTask Task) error {
 	id, err := attributevalue.Marshal(updatedTask.ID)
 	if err != nil {
 		return fmt.Errorf("failed to marshal updated task: %v", err)
@@ -165,7 +178,9 @@ func (d *Database) UpdateTask(updatedTask Task) error {
 	return nil
 }
 
-func (d *Database) DeleteTask(taskToDelete Task) error {
+// DeleteTask deletes a task from the database.
+// It returns an error if the task cannot be deleted.
+func (d *DynamoDatabase) DeleteTask(taskToDelete Task) error {
 	id, err := attributevalue.Marshal(taskToDelete.ID)
 	if err != nil {
 		return fmt.Errorf("failed to marshal updated task: %v", err)
