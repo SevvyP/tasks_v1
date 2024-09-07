@@ -1,23 +1,36 @@
 package server
 
-import "net/http"
+import (
+	"log"
+	"net/http"
+
+	"github.com/SevvyP/tasks_v1/internal/database"
+)
 
 type Resolver struct {
-	Server http.Server
+	Server   http.Server
+	Database database.TaskDatabase
 }
 
 func NewResolver() *Resolver {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/tasks", GetTasks)
-	mux.HandleFunc("/tasks/create", CreateTask)
-	mux.HandleFunc("/tasks/update", UpdateTask)
-	mux.HandleFunc("/tasks/delete", DeleteTask)
-
-	server := &http.Server{
-		Addr:    ":8080",
-		Handler: mux,
+	database, err := database.NewDatabase()
+	if err != nil {
+		log.Fatalf("Failed to create database: %v", err)
 	}
-	return &Resolver{Server: *server}
+	resolver := &Resolver{
+		Server: http.Server{
+			Addr:    ":8080",
+			Handler: mux,
+		},
+		Database: database,
+	}
+	mux.HandleFunc("/tasks", resolver.GetTasks)
+	mux.HandleFunc("/tasks/create", resolver.CreateTask)
+	mux.HandleFunc("/tasks/update", resolver.UpdateTask)
+	mux.HandleFunc("/tasks/delete", resolver.DeleteTask)
+
+	return resolver
 }
 
 func (r *Resolver) Resolve() error {
