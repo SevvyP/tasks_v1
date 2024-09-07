@@ -25,10 +25,20 @@ func NewResolver() *Resolver {
 		},
 		Database: database,
 	}
-	mux.HandleFunc("/tasks", resolver.GetTasks)
-	mux.HandleFunc("/tasks/create", resolver.CreateTask)
-	mux.HandleFunc("/tasks/update", resolver.UpdateTask)
-	mux.HandleFunc("/tasks/delete", resolver.DeleteTask)
+	mux.HandleFunc("/tasks", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case http.MethodGet:
+			resolver.GetTasks(w, r)
+		case http.MethodPost:
+			resolver.CreateTask(w, r)
+		case http.MethodPut:
+			resolver.UpdateTask(w, r)
+		case http.MethodDelete:
+			resolver.DeleteTask(w, r)
+		default:
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+		}
+	})
 
 	return resolver
 }

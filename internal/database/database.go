@@ -22,7 +22,8 @@ type Item struct {
 }
 
 type TaskDatabase interface {
-	GetTasks() ([]Task, error)
+	GetTasks() (*[]Task, error)
+	GetTaskByID(id string) (*Task, error)
 	CreateTask(task Task) error
 	UpdateTask(task Task) error
 	DeleteTask(task Task) error
@@ -46,7 +47,7 @@ func NewDatabase() (*Database, error) {
 	}, nil
 }
 
-func (d *Database) GetTasks() ([]Task, error) {
+func (d *Database) GetTasks() (*[]Task, error) {
 	// Create an input for the Scan operation
 	input := &dynamodb.ScanInput{
 		TableName: aws.String(d.tableName),
@@ -65,7 +66,40 @@ func (d *Database) GetTasks() ([]Task, error) {
 	}
 
 	// Replace resultresult.Items with result.Items
-	return output, nil
+	return &output, nil
+}
+
+func (d *Database) GetTaskByID(id string) (*Task, error) {
+	// Marshal the id into a DynamoDB attribute value
+	idAttr, err := attributevalue.Marshal(id)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal id: %v", err)
+	}
+
+	// Create an input for the GetItem operation
+	input := &dynamodb.GetItemInput{
+		TableName: aws.String(d.tableName),
+		Key: map[string]types.AttributeValue{
+			"id": idAttr,
+		},
+	}
+
+	// Perform the GetItem operation
+	out, err := d.client.GetItem(context.TODO(), input)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task: %v", err)
+	}
+
+	var task Task
+	err = attributevalue.UnmarshalMap(out.Item, &task)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get task: %v", err)
+	}
+	if task.ID == "" {
+		return nil, nil
+	}
+
+	return &task, nil
 }
 
 func (d *Database) CreateTask(task Task) error {
