@@ -10,12 +10,31 @@ import (
 
 func (r *Resolver) GetTasks(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	if req.URL.Query().Get("id") != "" {
+		r.GetTaskByID(w, req, req.URL.Query().Get("id"))
+		return
+	}
 	tasks, err := r.Database.GetTasks()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	json.NewEncoder(w).Encode(tasks)
+}
+
+func (r *Resolver) GetTaskByID(w http.ResponseWriter, req *http.Request, id string) {
+	task, err := r.Database.GetTaskByID(id)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	if task == nil {
+		http.Error(w, "Task not found", http.StatusNotFound)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(task)
 }
 
 func (r *Resolver) CreateTask(w http.ResponseWriter, req *http.Request) {
