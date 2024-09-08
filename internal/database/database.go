@@ -1,27 +1,29 @@
 package database
 
 import (
-	"context"
+	"database/sql"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
+	_ "github.com/lib/pq"
 )
 
+type PostgresConfig struct {
+	Host     string `json:"host"`
+	Port     string `json:"port"`
+	Username string `json:"username"`
+	Password string `json:"password"`
+	Database string `json:"database"`
+}
+
 type Task struct {
-	ID    string `json:"id" dynamodbav:"id"`
-	Items []Item `json:"items" dynamodbav:"items"`
+	ID        string  `json:"id"`
+	UserID    string  `json:"user_id"`
+	Body      string  `json:"body"`
+	Completed bool    `json:"completed"`
+	Parent    *string `json:"parent"`
+	Reminder  *string `json:"reminder"`
 }
 
-type Item struct {
-	Name  string `json:"name" dynamodbav:"name"`
-	Price int    `json:"price" dynamodbav:"price"`
-}
-
-// TaskDatabase is an interface for interacting with a task database.
 type TaskDatabase interface {
 	GetTasks() (*[]Task, error)
 	GetTaskByID(id string) (*Task, error)
@@ -30,104 +32,63 @@ type TaskDatabase interface {
 	DeleteTask(task Task) error
 }
 
-// DynamoDatabase is a DynamoDB implementation of the TaskDatabase interface.
-type DynamoDatabase struct {
-	tableName string
-	client    *dynamodb.Client
+type PostgresDatabase struct {
+	db *sql.DB
 }
 
-// NewDatabase creates a new DynamoDatabase instance.
-// It returns an error if the AWS configuration cannot be loaded.
-func NewDatabase() (*DynamoDatabase, error) {
-	tableName := "tasks_v1"
-	cfg, err := config.LoadDefaultConfig(context.TODO())
+func NewDatabase(config *PostgresConfig) (*PostgresDatabase, error) {
+	if config == nil {
+		return nil, fmt.Errorf("config is nil")
+	}
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", config.Username, config.Password, config.Host, config.Port, config.Database)
+	db, err := sql.Open("postgres", connStr)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load aws config: %v", err)
+		return nil, fmt.Errorf("failed to connect to database: %v", err)
 	}
 
-	return &DynamoDatabase{
-		tableName: tableName,
-		client:    dynamodb.NewFromConfig(cfg),
+	return &PostgresDatabase{
+		db: db,
 	}, nil
 }
 
-// GetTasks retrieves a list of tasks from the database.
-// It returns an error if the tasks cannot be retrieved.
-func (d *DynamoDatabase) GetTasks() (*[]Task, error) {
-	// Create an input for the Scan operation
-	input := &dynamodb.ScanInput{
-		TableName: aws.String(d.tableName),
-	}
-
-	// Perform the Scan operation
-	out, err := d.client.Scan(context.TODO(), input)
+func (d *PostgresDatabase) GetTasks() (*[]Task, error) {
+	rows, err := d.db.Query("SELECT * FROM tasks")
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tasks: %v", err)
 	}
+	defer rows.Close()
 
-	output := make([]Task, len(out.Items))
-	err = attributevalue.UnmarshalListOfMaps(out.Items, &output)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get tasks: %v", err)
+	var tasks []Task
+	for rows.Next() {
+		var task Task
+		err := rows.Scan(&task.ID, &task.UserID, &task.Body, &task.Completed, &task.Parent, &task.Reminder)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan task: %v", err)
+		}
+		tasks = append(tasks, task)
 	}
 
-	// Replace resultresult.Items with result.Items
-	return &output, nil
+	return &tasks, nil
 }
 
-// GetTaskByID retrieves a task by its ID from the database.
-// It returns an error if the task cannot be retrieved.
-// If the task is not found, it returns nil.
-func (d *DynamoDatabase) GetTaskByID(id string) (*Task, error) {
-	// Marshal the id into a DynamoDB attribute value
-	idAttr, err := attributevalue.Marshal(id)
-	if err != nil {
-		return nil, fmt.Errorf("failed to marshal id: %v", err)
-	}
-
-	// Create an input for the GetItem operation
-	input := &dynamodb.GetItemInput{
-		TableName: aws.String(d.tableName),
-		Key: map[string]types.AttributeValue{
-			"id": idAttr,
-		},
-	}
-
-	// Perform the GetItem operation
-	out, err := d.client.GetItem(context.TODO(), input)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get task: %v", err)
-	}
+func (d *PostgresDatabase) GetTaskByID(id string) (*Task, error) {
+	row := d.db.QueryRow("SELECT * FROM tasks WHERE id = $1", id)
 
 	var task Task
-	err = attributevalue.UnmarshalMap(out.Item, &task)
+	err := row.Scan(&task.ID, &task.UserID, &task.Body, &task.Completed, &task.Parent, &task.Reminder)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to get task: %v", err)
-	}
-	if task.ID == "" {
-		return nil, nil
 	}
 
 	return &task, nil
 }
 
-// CreateTask creates a new task in the database.
-// It returns an error if the task cannot be created.
-func (d *DynamoDatabase) CreateTask(task Task) error {
-	// Marshal the task into a DynamoDB attribute value map
-	item, err := attributevalue.MarshalMap(task)
-	if err != nil {
-		return fmt.Errorf("failed to marshal task: %v", err)
-	}
-
-	// Create an input for the PutItem operation
-	input := &dynamodb.PutItemInput{
-		TableName: aws.String(d.tableName),
-		Item:      item,
-	}
-
-	// Perform the PutItem operation
-	_, err = d.client.PutItem(context.TODO(), input)
+func (d *PostgresDatabase) CreateTask(task Task) error {
+	_, err := d.db.Exec("INSERT INTO tasks (id, user_id, body, completed, parent, reminder) VALUES ($1, $2, $3, $4, $5, $6)",
+		task.ID, task.UserID, task.Body, task.Completed, task.Parent, task.Reminder)
 	if err != nil {
 		return fmt.Errorf("failed to create task: %v", err)
 	}
@@ -135,67 +96,18 @@ func (d *DynamoDatabase) CreateTask(task Task) error {
 	return nil
 }
 
-// UpdateTask updates an existing task in the database.
-// It returns an error if the task cannot be updated.
-func (d *DynamoDatabase) UpdateTask(updatedTask Task) error {
-	id, err := attributevalue.Marshal(updatedTask.ID)
+func (d *PostgresDatabase) UpdateTask(updatedTask Task) error {
+	_, err := d.db.Exec("UPDATE tasks SET user_id = $1, body = $2, completed = $3, parent = $4, reminder = $5 WHERE id = $6",
+		updatedTask.UserID, updatedTask.Body, updatedTask.Completed, updatedTask.Parent, updatedTask.Reminder, updatedTask.ID)
 	if err != nil {
-		return fmt.Errorf("failed to marshal updated task: %v", err)
-	}
-
-	// Check if the task exists
-	exists, err := d.client.GetItem(context.TODO(), &dynamodb.GetItemInput{
-		TableName: aws.String(d.tableName),
-		Key: map[string]types.AttributeValue{
-			"id": id,
-		},
-	})
-	if err != nil {
-		return fmt.Errorf("failed to check for task: %v", err)
-	}
-	if len(exists.Item) == 0 {
-		return fmt.Errorf("task does not exist")
-	}
-
-	// Marshal the task into a DynamoDB attribute value map
-	item, err := attributevalue.MarshalMap(updatedTask)
-	if err != nil {
-		return fmt.Errorf("failed to marshal task: %v", err)
-	}
-
-	// Create an input for the PutItem operation
-	input := &dynamodb.PutItemInput{
-		TableName: aws.String(d.tableName),
-		Item:      item,
-	}
-
-	// Perform the PutItem operation
-	_, err = d.client.PutItem(context.TODO(), input)
-	if err != nil {
-		return fmt.Errorf("failed to create task: %v", err)
+		return fmt.Errorf("failed to update task: %v", err)
 	}
 
 	return nil
 }
 
-// DeleteTask deletes a task from the database.
-// It returns an error if the task cannot be deleted.
-func (d *DynamoDatabase) DeleteTask(taskToDelete Task) error {
-	id, err := attributevalue.Marshal(taskToDelete.ID)
-	if err != nil {
-		return fmt.Errorf("failed to marshal updated task: %v", err)
-	}
-
-	// Create an input for the DeleteItem operation
-	input := &dynamodb.DeleteItemInput{
-		TableName: aws.String(d.tableName),
-		Key: map[string]types.AttributeValue{
-			"id": id,
-		},
-	}
-
-	// Perform the DeleteItem operation
-	_, err = d.client.DeleteItem(context.TODO(), input)
+func (d *PostgresDatabase) DeleteTask(taskToDelete Task) error {
+	_, err := d.db.Exec("DELETE FROM tasks WHERE id = $1", taskToDelete.ID)
 	if err != nil {
 		return fmt.Errorf("failed to delete task: %v", err)
 	}

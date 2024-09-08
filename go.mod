@@ -32,4 +32,5 @@ require (
 require (
 	github.com/aws/aws-sdk-go-v2/config v1.27.33
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
+	github.com/lib/pq v1.10.9
 )
