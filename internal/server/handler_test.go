@@ -24,14 +24,14 @@ func TestGetTasksHandler(t *testing.T) {
 		{
 			name: "GetTasks_Success",
 			dbResponse: &[]database.Task{
-				{ID: "1", Items: []database.Item{{Name: "1", Price: 1}}},
-				{ID: "2", Items: []database.Item{{Name: "2", Price: 2}}},
+				{ID: "1", Body: "Task 1", Completed: false},
+				{ID: "2", Body: "Task 2", Completed: true},
 			},
 			dbError:        nil,
 			expectedStatus: http.StatusOK,
 			expectedBody: []database.Task{
-				{ID: "1", Items: []database.Item{{Name: "1", Price: 1}}},
-				{ID: "2", Items: []database.Item{{Name: "2", Price: 2}}},
+				{ID: "1", Body: "Task 1", Completed: false},
+				{ID: "2", Body: "Task 2", Completed: true},
 			},
 		},
 		{
@@ -80,10 +80,10 @@ func TestGetTaskByIdHandler(t *testing.T) {
 		{
 			name:           "GetTasks_byID_Success",
 			id:             "1",
-			dbResponse:     &database.Task{ID: "1", Items: []database.Item{{Name: "1", Price: 1}}},
+			dbResponse:     &database.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbError:        nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   database.Task{ID: "1", Items: []database.Item{{Name: "1", Price: 1}}},
+			expectedBody:   database.Task{ID: "1", Body: "Task 1", Completed: false},
 		},
 		{
 			name:           "GetTasks_byID_NotFound",
@@ -141,14 +141,14 @@ func TestCreateTaskHandler(t *testing.T) {
 	}{
 		{
 			name:           "CreateTask_Success",
-			body:           database.Task{ID: "1", Items: []database.Item{{Name: "1", Price: 1}}},
+			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     nil,
 			expectedStatus: http.StatusCreated,
 			expectedBody:   "Task created successfully",
 		},
 		{
 			name:           "CreateTask_Error",
-			body:           database.Task{ID: "1", Items: []database.Item{{Name: "1", Price: 1}}},
+			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     fmt.Errorf("database error"),
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   nil,
@@ -189,14 +189,14 @@ func TestUpdateTaskHandler(t *testing.T) {
 	}{
 		{
 			name:           "UpdateTask_Success",
-			body:           database.Task{ID: "1", Items: []database.Item{{Name: "1", Price: 1}}},
+			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     nil,
 			expectedStatus: http.StatusOK,
 			expectedBody:   "Task updated successfully",
 		},
 		{
 			name:           "UpdateTask_Error",
-			body:           database.Task{ID: "1", Items: []database.Item{{Name: "1", Price: 1}}},
+			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     fmt.Errorf("database error"),
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   nil,
@@ -237,14 +237,14 @@ func TestDeleteTaskHandler(t *testing.T) {
 	}{
 		{
 			name:           "DeleteTask_Success",
-			body:           database.Task{ID: "1", Items: []database.Item{{Name: "1", Price: 1}}},
+			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     nil,
 			expectedStatus: http.StatusOK,
 			expectedBody:   "Task deleted successfully",
 		},
 		{
 			name:           "DeleteTask_Error",
-			body:           database.Task{ID: "1", Items: []database.Item{{Name: "1", Price: 1}}},
+			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     fmt.Errorf("database error"),
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   nil,

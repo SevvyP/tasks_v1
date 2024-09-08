@@ -13,11 +13,18 @@ type Resolver struct {
 	Database database.TaskDatabase
 }
 
+type Config struct {
+	PostgresConfig *database.PostgresConfig `json:"postgres"`
+}
+
 // NewResolver creates a new Resolver with a new HTTP server and database.
 // It also sets up the HTTP routes for the server.
-func NewResolver() *Resolver {
+func NewResolver(config *Config) *Resolver {
+	if config == nil {
+		log.Fatal("config is nil")
+	}
 	mux := http.NewServeMux()
-	database, err := database.NewDatabase()
+	database, err := database.NewDatabase(config.PostgresConfig)
 	if err != nil {
 		log.Fatalf("Failed to create database: %v", err)
 	}
