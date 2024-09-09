@@ -38,7 +38,7 @@ jobs:
           username: ${{ secrets.EC2_USERNAME_DEV }}
           key: ${{ secrets.SSH_PRIVATE_KEY_DEV }}
           source: "docker-compose.yml"
-          target: "/etc/tasks_v1/docker-compose.yml"
+          target: "/etc/tasks_v1"
 
 
       - name: Deploy to EC2 Instance
