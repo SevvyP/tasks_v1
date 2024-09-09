@@ -29,8 +29,9 @@ jobs:
         with:
           push: true
           tags: sevvyp/tasks_v1:latest
+
       - name: Change permissions
-      - uses: actions/checkout@v4
+        uses: actions/checkout@v4
         run: chmod 664 docker-compose.yml
 
       - name: copy file via ssh password
