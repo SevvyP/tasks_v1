@@ -30,6 +30,18 @@ jobs:
           push: true
           tags: sevvyp/tasks_v1:latest
 
+      - uses: actions/checkout@v4
+      - name: copy file via ssh password
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          password: ${{ secrets.PASSWORD }}
+          port: ${{ secrets.PORT }}
+          source: "docker-compose.yml"
+          target: "/etc/tasks_v1/docker-compose.yml"
+
+
       - name: Deploy to EC2 Instance
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -39,5 +51,6 @@ jobs:
           script: |
             docker stop tasks_v1 || true
             docker rm tasks_v1 || true
+            cd /etc/tasks_v1
             docker pull sevvyp/tasks_v1:latest
             docker-compose up -d

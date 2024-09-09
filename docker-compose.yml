@@ -1,6 +1,6 @@
 services:
   app:
-    build: .
+    image: tasks_v1
     container_name: tasks_v1
     volumes:
       - /etc/config.json:/etc/config.json
