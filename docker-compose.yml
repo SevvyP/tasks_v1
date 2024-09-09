@@ -1,0 +1,8 @@
+services:
+  app:
+    build: .
+    container_name: tasks_v1
+    volumes:
+      - /etc/config.json:/etc/config.json
+    ports:
+      - "8080:8080"
