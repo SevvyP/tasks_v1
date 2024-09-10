@@ -30,20 +30,6 @@ jobs:
           push: true
           tags: sevvyp/tasks_v1:latest
 
-      - uses: actions/checkout@v4
-      - name: Change permissions
-        run: chmod 664 docker-compose.yml
-
-      - name: copy file via ssh password
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.EC2_INSTANCE_IP_DEV }}
-          username: ${{ secrets.EC2_USERNAME_DEV }}
-          key: ${{ secrets.SSH_PRIVATE_KEY_DEV }}
-          source: "docker-compose.yml"
-          target: "/etc/tasks_v1"
-
-
       - name: Deploy to EC2 Instance
         uses: appleboy/ssh-action@v1.0.3
         with:
@@ -53,6 +39,8 @@ jobs:
           script: |
             docker stop tasks_v1 || true
             docker rm tasks_v1 || true
+            sudo rm /etc/tasks_v1/config.json || true
+            sudo mkdir /etc/tasks_v1 || true
+            sudo echo "${{ secrets.DEV_CONFIG_FILE }}" > /etc/tasks_v1/config.json
             docker pull sevvyp/tasks_v1:latest
-            cd /etc/tasks_v1
-            docker-compose up -d
+            docker run -d -p 8080:8080 -v /etc/tasks_v1/config.json:/etc/tasks_v1/config.json --name tasks_v1 sevvyp/tasks_v1:latest
