@@ -1,4 +1,4 @@
-name: Pull Request on Main
+name: Lint, Test, and Build Go App
 
 on:
   pull_request:

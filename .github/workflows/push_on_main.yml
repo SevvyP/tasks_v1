@@ -53,6 +53,6 @@ jobs:
           script: |
             docker stop tasks_v1 || true
             docker rm tasks_v1 || true
-            cd /etc/tasks_v1
             docker pull sevvyp/tasks_v1:latest
+            cd /etc/tasks_v1
             docker-compose up -d
