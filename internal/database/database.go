@@ -3,6 +3,7 @@ package database
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
 
 	_ "github.com/lib/pq"
 )
@@ -40,7 +41,7 @@ func NewDatabase(config *PostgresConfig) (*PostgresDatabase, error) {
 	if config == nil {
 		return nil, fmt.Errorf("config is nil")
 	}
-	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", config.Username, config.Password, config.Host, config.Port, config.Database)
+	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable", config.Username, url.QueryEscape(config.Password), config.Host, config.Port, config.Database)
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %v", err)
