@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	configFile := flag.String("c", "/etc/config.json", "path to config file")
+	configFile := flag.String("c", "/etc/tasks_v1/config.json", "path to config file")
 	flag.Parse()
 	fmt.Println("Starting server with config file:", *configFile)
 	bytes, err := os.ReadFile(*configFile)
