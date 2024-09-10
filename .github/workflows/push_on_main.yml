@@ -42,6 +42,8 @@ jobs:
             sudo rm /etc/tasks_v1/config.json || true
             sudo mkdir /etc/tasks_v1 || true
             sudo touch /etc/tasks_v1/config.json
+            sudo chmod 777 /etc/tasks_v1/config.json
             sudo echo "${{ secrets.DEV_CONFIG_FILE }}" > /etc/tasks_v1/config.json
+            sudo chmod 644 /etc/tasks_v1/config.json
             docker pull sevvyp/tasks_v1:latest
             docker run -d -p 8080:8080 -v /etc/tasks_v1/config.json:/etc/tasks_v1/config.json --name tasks_v1 sevvyp/tasks_v1:latest
