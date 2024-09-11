@@ -131,6 +131,86 @@ func TestGetTaskByIdHandler(t *testing.T) {
 	}
 }
 
+func TestGetTasksByUserIDHandler(t *testing.T) {
+	tests := []struct {
+		name           string
+		userID         string
+		dbResponse     *[]database.Task
+		dbError        error
+		expectedStatus int
+		expectedBody   interface{}
+	}{
+		{
+			name:   "GetTasks_byUserID_Success",
+			userID: "1",
+			dbResponse: &[]database.Task{
+				{ID: "1", Body: "Task 1", Completed: false},
+				{ID: "2", Body: "Task 2", Completed: true},
+			},
+			dbError:        nil,
+			expectedStatus: http.StatusOK,
+			expectedBody: []database.Task{
+				{ID: "1", Body: "Task 1", Completed: false},
+				{ID: "2", Body: "Task 2", Completed: true},
+			},
+		},
+		{
+			name:           "GetTasks_byUserID_Error",
+			userID:         "1",
+			dbResponse:     nil,
+			dbError:        fmt.Errorf("database error"),
+			expectedStatus: http.StatusInternalServerError,
+			expectedBody:   nil,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockDB := new(database.MockDatabase)
+			mockDB.On("GetTasksByUserID", tt.userID).Return(tt.dbResponse, tt.dbError)
+			resolver := &Resolver{Database: mockDB}
+
+			req, err := http.NewRequest("GET", "/tasks", nil)
+			q := req.URL.Query()
+			q.Add("user_id", tt.userID)
+			req.URL.RawQuery = q.Encode()
+
+			assert.NoError(t, err)
+
+			rr := httptest.NewRecorder()
+			handler := http.HandlerFunc(resolver.GetTasks)
+			handler.ServeHTTP(rr, req)
+
+			assert.Equal(t, tt.expectedStatus, rr.Code)
+			if tt.expectedBody != nil {
+				var responseBody []database.Task
+				err = json.NewDecoder(rr.Body).Decode(&responseBody)
+				assert.NoError(t, err)
+				assert.Equal(t, tt.expectedBody, responseBody)
+			}
+			mockDB.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetTasksByUserAndIDError(t *testing.T) {
+	resolver := &Resolver{}
+
+	req, err := http.NewRequest("GET", "/tasks", nil)
+	q := req.URL.Query()
+	q.Add("user_id", "1")
+	q.Add("id", "1")
+	req.URL.RawQuery = q.Encode()
+
+	assert.NoError(t, err)
+
+	rr := httptest.NewRecorder()
+	handler := http.HandlerFunc(resolver.GetTasks)
+	handler.ServeHTTP(rr, req)
+
+	assert.Equal(t, http.StatusBadRequest, rr.Code)
+	assert.Equal(t, "Cannot query by both id and user\n", rr.Body.String())
+}
+
 func TestCreateTaskHandler(t *testing.T) {
 	tests := []struct {
 		name           string

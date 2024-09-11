@@ -15,10 +15,28 @@ import (
 // If a task with the specified ID is not found, an HTTP 404 Not Found is returned.
 func (r *Resolver) GetTasks(w http.ResponseWriter, req *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	if req.URL.Query().Get("id") != "" {
-		r.GetTaskByID(w, req, req.URL.Query().Get("id"))
+
+	id := req.URL.Query().Get("id")
+	user := req.URL.Query().Get("user_id")
+
+	// Check if both "id" and "user" query parameters are present
+	if id != "" && user != "" {
+		http.Error(w, "Cannot query by both id and user", http.StatusBadRequest)
 		return
 	}
+
+	// Check for "id" query parameter
+	if id != "" {
+		r.GetTaskByID(w, req, id)
+		return
+	}
+
+	// Check for "user" query parameter
+	if user != "" {
+		r.GetTasksByUserID(w, req, user)
+		return
+	}
+
 	tasks, err := r.Database.GetTasks()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -44,6 +62,18 @@ func (r *Resolver) GetTaskByID(w http.ResponseWriter, req *http.Request, id stri
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(task)
+}
+
+// GetTasksByUser retrieves tasks by user from the database and sends them as a JSON response.
+// If the tasks are found, they are encoded as JSON and sent in the response body.
+// If there is an error retrieving the tasks from the database, an HTTP 500 Internal Server Error is returned.
+func (r *Resolver) GetTasksByUserID(w http.ResponseWriter, req *http.Request, user string) {
+	tasks, err := r.Database.GetTasksByUserID(user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	json.NewEncoder(w).Encode(tasks)
 }
 
 // CreateTask creates a new task in the database based on the JSON request body.

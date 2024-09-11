@@ -28,6 +28,7 @@ type Task struct {
 type TaskDatabase interface {
 	GetTasks() (*[]Task, error)
 	GetTaskByID(id string) (*Task, error)
+	GetTasksByUserID(userID string) (*[]Task, error)
 	CreateTask(task Task) error
 	UpdateTask(task Task) error
 	DeleteTask(task Task) error
@@ -42,6 +43,9 @@ func NewDatabase(config *PostgresConfig) (*PostgresDatabase, error) {
 		return nil, fmt.Errorf("config is nil")
 	}
 	connStr := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", config.Username, url.QueryEscape(config.Password), config.Host, config.Port, config.Database)
+	if config.Host == "localhost" {
+		connStr += "?sslmode=disable"
+	}
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to database: %v", err)
@@ -85,6 +89,24 @@ func (d *PostgresDatabase) GetTaskByID(id string) (*Task, error) {
 	}
 
 	return &task, nil
+}
+
+func (d *PostgresDatabase) GetTasksByUserID(userID string) (*[]Task, error) {
+	rows, err := d.db.Query("SELECT * FROM tasks WHERE user_id = $1", userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get tasks: %v", err)
+	}
+	defer rows.Close()
+	tasks := []Task{}
+	for rows.Next() {
+		var task Task
+		err := rows.Scan(&task.ID, &task.UserID, &task.Body, &task.Completed, &task.Parent, &task.Reminder)
+		if err != nil {
+			return nil, fmt.Errorf("failed to scan task: %v", err)
+		}
+		tasks = append(tasks, task)
+	}
+	return &tasks, nil
 }
 
 func (d *PostgresDatabase) CreateTask(task Task) error {
