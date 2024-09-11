@@ -18,6 +18,11 @@ func (m *MockDatabase) GetTaskByID(id string) (*Task, error) {
 	return args.Get(0).(*Task), args.Error(1)
 }
 
+func (m *MockDatabase) GetTasksByUserID(userID string) (*[]Task, error) {
+	args := m.Called(userID)
+	return args.Get(0).(*[]Task), args.Error(1)
+}
+
 func (m *MockDatabase) CreateTask(task Task) error {
 	args := m.Called(task)
 	return args.Error(0)
