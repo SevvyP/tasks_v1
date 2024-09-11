@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/SevvyP/tasks_v1/internal/database"
+	"github.com/SevvyP/tasks_v1/internal/middleware"
 )
 
 // Resolver is the main server struct that holds the HTTP server and the database.
@@ -15,6 +16,7 @@ type Resolver struct {
 
 type Config struct {
 	PostgresConfig *database.PostgresConfig `json:"postgres"`
+	AuthConfig     *middleware.AuthConfig   `json:"auth"`
 }
 
 // NewResolver creates a new Resolver with a new HTTP server and database.
@@ -35,7 +37,9 @@ func NewResolver(config *Config) *Resolver {
 		},
 		Database: database,
 	}
-	mux.HandleFunc("/tasks", func(w http.ResponseWriter, r *http.Request) {
+
+	// Wrap the handler with the authentication middleware
+	mux.Handle("/tasks", middleware.EnsureValidToken(config.AuthConfig)(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case http.MethodGet:
 			resolver.GetTasks(w, r)
@@ -48,7 +52,7 @@ func NewResolver(config *Config) *Resolver {
 		default:
 			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		}
-	})
+	})))
 
 	return resolver
 }
