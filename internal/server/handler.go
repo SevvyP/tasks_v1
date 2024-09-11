@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/SevvyP/tasks_v1/internal/database"
+	"github.com/SevvyP/tasks_v1/pkg/model"
 )
 
 // GetTasks retrieves a list of tasks from the database and sends them as a JSON response.
@@ -80,7 +80,7 @@ func (r *Resolver) GetTasksByUserID(w http.ResponseWriter, req *http.Request, us
 // If the task is created successfully, an HTTP 201 Created response is returned.
 // If there is an error creating the task, an HTTP 500 Internal Server Error is returned.
 func (r *Resolver) CreateTask(w http.ResponseWriter, req *http.Request) {
-	var task database.Task
+	var task model.Task
 	err := json.NewDecoder(req.Body).Decode(&task)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -101,7 +101,7 @@ func (r *Resolver) CreateTask(w http.ResponseWriter, req *http.Request) {
 // If the task is updated successfully, an HTTP 200 OK response is returned.
 // If there is an error updating the task, an HTTP 500 Internal Server Error is returned.
 func (r *Resolver) UpdateTask(w http.ResponseWriter, req *http.Request) {
-	var updatedTask database.Task
+	var updatedTask model.Task
 	err := json.NewDecoder(req.Body).Decode(&updatedTask)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -121,7 +121,7 @@ func (r *Resolver) UpdateTask(w http.ResponseWriter, req *http.Request) {
 // If the task is deleted successfully, an HTTP 200 OK response is returned.
 // If there is an error deleting the task, an HTTP 500 Internal Server Error is returned.
 func (r *Resolver) DeleteTask(w http.ResponseWriter, req *http.Request) {
-	var taskToDelete database.Task
+	var taskToDelete model.Task
 	err := json.NewDecoder(req.Body).Decode(&taskToDelete)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

@@ -11,25 +11,26 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/SevvyP/tasks_v1/internal/database"
+	"github.com/SevvyP/tasks_v1/pkg/model"
 )
 
 func TestGetTasksHandler(t *testing.T) {
 	tests := []struct {
 		name           string
-		dbResponse     *[]database.Task
+		dbResponse     *[]model.Task
 		dbError        error
 		expectedStatus int
 		expectedBody   interface{}
 	}{
 		{
 			name: "GetTasks_Success",
-			dbResponse: &[]database.Task{
+			dbResponse: &[]model.Task{
 				{ID: "1", Body: "Task 1", Completed: false},
 				{ID: "2", Body: "Task 2", Completed: true},
 			},
 			dbError:        nil,
 			expectedStatus: http.StatusOK,
-			expectedBody: []database.Task{
+			expectedBody: []model.Task{
 				{ID: "1", Body: "Task 1", Completed: false},
 				{ID: "2", Body: "Task 2", Completed: true},
 			},
@@ -58,7 +59,7 @@ func TestGetTasksHandler(t *testing.T) {
 
 			assert.Equal(t, tt.expectedStatus, rr.Code)
 			if tt.expectedBody != nil {
-				var responseBody []database.Task
+				var responseBody []model.Task
 				err = json.NewDecoder(rr.Body).Decode(&responseBody)
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedBody, responseBody)
@@ -72,7 +73,7 @@ func TestGetTaskByIdHandler(t *testing.T) {
 	tests := []struct {
 		name           string
 		id             string
-		dbResponse     *database.Task
+		dbResponse     *model.Task
 		dbError        error
 		expectedStatus int
 		expectedBody   interface{}
@@ -80,10 +81,10 @@ func TestGetTaskByIdHandler(t *testing.T) {
 		{
 			name:           "GetTasks_byID_Success",
 			id:             "1",
-			dbResponse:     &database.Task{ID: "1", Body: "Task 1", Completed: false},
+			dbResponse:     &model.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbError:        nil,
 			expectedStatus: http.StatusOK,
-			expectedBody:   database.Task{ID: "1", Body: "Task 1", Completed: false},
+			expectedBody:   model.Task{ID: "1", Body: "Task 1", Completed: false},
 		},
 		{
 			name:           "GetTasks_byID_NotFound",
@@ -121,7 +122,7 @@ func TestGetTaskByIdHandler(t *testing.T) {
 
 			assert.Equal(t, tt.expectedStatus, rr.Code)
 			if tt.expectedBody != nil {
-				var responseBody database.Task
+				var responseBody model.Task
 				err = json.NewDecoder(rr.Body).Decode(&responseBody)
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedBody, responseBody)
@@ -135,7 +136,7 @@ func TestGetTasksByUserIDHandler(t *testing.T) {
 	tests := []struct {
 		name           string
 		userID         string
-		dbResponse     *[]database.Task
+		dbResponse     *[]model.Task
 		dbError        error
 		expectedStatus int
 		expectedBody   interface{}
@@ -143,13 +144,13 @@ func TestGetTasksByUserIDHandler(t *testing.T) {
 		{
 			name:   "GetTasks_byUserID_Success",
 			userID: "1",
-			dbResponse: &[]database.Task{
+			dbResponse: &[]model.Task{
 				{ID: "1", Body: "Task 1", Completed: false},
 				{ID: "2", Body: "Task 2", Completed: true},
 			},
 			dbError:        nil,
 			expectedStatus: http.StatusOK,
-			expectedBody: []database.Task{
+			expectedBody: []model.Task{
 				{ID: "1", Body: "Task 1", Completed: false},
 				{ID: "2", Body: "Task 2", Completed: true},
 			},
@@ -182,7 +183,7 @@ func TestGetTasksByUserIDHandler(t *testing.T) {
 
 			assert.Equal(t, tt.expectedStatus, rr.Code)
 			if tt.expectedBody != nil {
-				var responseBody []database.Task
+				var responseBody []model.Task
 				err = json.NewDecoder(rr.Body).Decode(&responseBody)
 				assert.NoError(t, err)
 				assert.Equal(t, tt.expectedBody, responseBody)
@@ -214,21 +215,21 @@ func TestGetTasksByUserAndIDError(t *testing.T) {
 func TestCreateTaskHandler(t *testing.T) {
 	tests := []struct {
 		name           string
-		body           database.Task
+		body           model.Task
 		dbResponse     error
 		expectedStatus int
 		expectedBody   interface{}
 	}{
 		{
 			name:           "CreateTask_Success",
-			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
+			body:           model.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     nil,
 			expectedStatus: http.StatusCreated,
 			expectedBody:   "Task created successfully",
 		},
 		{
 			name:           "CreateTask_Error",
-			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
+			body:           model.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     fmt.Errorf("database error"),
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   nil,
@@ -262,21 +263,21 @@ func TestCreateTaskHandler(t *testing.T) {
 func TestUpdateTaskHandler(t *testing.T) {
 	tests := []struct {
 		name           string
-		body           database.Task
+		body           model.Task
 		dbResponse     error
 		expectedStatus int
 		expectedBody   interface{}
 	}{
 		{
 			name:           "UpdateTask_Success",
-			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
+			body:           model.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     nil,
 			expectedStatus: http.StatusOK,
 			expectedBody:   "Task updated successfully",
 		},
 		{
 			name:           "UpdateTask_Error",
-			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
+			body:           model.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     fmt.Errorf("database error"),
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   nil,
@@ -310,21 +311,21 @@ func TestUpdateTaskHandler(t *testing.T) {
 func TestDeleteTaskHandler(t *testing.T) {
 	tests := []struct {
 		name           string
-		body           database.Task
+		body           model.Task
 		dbResponse     error
 		expectedStatus int
 		expectedBody   interface{}
 	}{
 		{
 			name:           "DeleteTask_Success",
-			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
+			body:           model.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     nil,
 			expectedStatus: http.StatusOK,
 			expectedBody:   "Task deleted successfully",
 		},
 		{
 			name:           "DeleteTask_Error",
-			body:           database.Task{ID: "1", Body: "Task 1", Completed: false},
+			body:           model.Task{ID: "1", Body: "Task 1", Completed: false},
 			dbResponse:     fmt.Errorf("database error"),
 			expectedStatus: http.StatusInternalServerError,
 			expectedBody:   nil,
