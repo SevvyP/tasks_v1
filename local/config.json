@@ -5,5 +5,9 @@
         "database": "tasks",
         "host": "localhost",
         "port": "5432"
+    },
+    "auth": {
+        "domain": "dev-ahizp3vfxgq38um3.us.auth0.com",
+        "audience": "tasks_v1_web"
     }
 }
